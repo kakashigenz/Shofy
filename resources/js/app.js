@@ -4,10 +4,12 @@ import App from "@/App.vue";
 import { createRouter, createWebHistory } from "vue-router";
 import { createPinia } from "pinia";
 import "boxicons";
-import { useUserStore } from "./store/useUserStore";
+import { useUserStore } from "@/store/useUserStore";
+import createAxios from "@/api/axios";
 
 const app = createApp(App);
 const pinia = createPinia();
+const api = createAxios();
 
 app.use(pinia);
 
@@ -23,6 +25,7 @@ const routes = [
                 name: "dashboard",
                 path: "dashboard",
                 component: () => import("@/pages/admin/Dashboard.vue"),
+                meta: { menu: "dashboard" },
             },
             {
                 name: "product",
@@ -38,10 +41,10 @@ const routes = [
             },
         ],
         meta: { title: "Đăng nhập" },
-        component: () =>
-            userStore.user?.isAdmin
-                ? import("@/pages/admin/MasterAdmin.vue")
-                : import("@/pages/admin/Login.vue"),
+        components: {
+            default: () => import("@/pages/admin/MasterAdmin.vue"),
+            login: () => import("@/pages/admin/Login.vue"),
+        },
     },
     {
         name: "notfound",
@@ -55,9 +58,28 @@ const router = createRouter({
     routes,
 });
 
-router.beforeEach((to, from) => {
-    if (!userStore.user?.isAdmin && to.name != "admin") {
-        return { name: "admin" };
+router.beforeEach(async (to, from) => {
+    try {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const response = await api.auth.authorize();
+            if (response.status == 200 && response.data) {
+                userStore.setUser(response.data);
+                if (to.name == "admin") {
+                    return { name: "dashboard" };
+                }
+            }
+        }
+        // no token
+        if (!token && to.name != "admin") {
+            return { name: "admin" };
+        }
+    } catch (error) {
+        if ((error.response.status = 401)) {
+            localStorage.removeItem("token");
+            return { name: "admin" };
+        }
+        console.log(error);
     }
 });
 

@@ -1,5 +1,10 @@
 <template>
-    <router-view></router-view>
+    <router-view v-if="userStore.user?.isAdmin"></router-view>
+    <router-view name="login" v-else></router-view>
 </template>
 
-<script setup></script>
+<script setup>
+import { useUserStore } from "./store/useUserStore";
+
+const userStore = useUserStore();
+</script>

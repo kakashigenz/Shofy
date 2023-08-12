@@ -54,7 +54,6 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        // dd('post');
         try {
             $product = $request->validate([
                 'name' => 'required',

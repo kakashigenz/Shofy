@@ -32,12 +32,15 @@ class AuthController extends Controller
                 'email' => 'required',
                 'password' => 'required'
             ]);
-            $userDb = User::query()->where('email',$user['email'])->firstOrFail();
-            if (Hash::check($user['password'],data_get($userDb,'password'))){
-               $token = $userDb->createToken('token')->plainTextToken;
-               return response()->json(['message'=>'successs','token'=>$token],200);
+            $userDb = User::query()->where('email',$user['email'])->where('isAdmin',true)->first();
+            if (empty($userDb)){
+                return  response()->json(['message'=>'Email hoặc mật khẩu không chính xác',],400);
             }
-            return response()->json(['message'=>'Email hoặc mật khẩu không chính xác',],401);
+            if (Hash::check($user['password'],data_get($userDb,'password'))){
+                $token = $userDb->createToken('token')->plainTextToken;
+                return response()->json(['message'=>'success','token'=>$token,'user'=>$userDb],200);
+            }
+            return response()->json(['message'=>'Email hoặc mật khẩu không chính xác',],400);
         } catch (\Throwable $th) {
             return response()->json(['message'=>$th->getMessage()],400);
         }
@@ -50,6 +53,9 @@ class AuthController extends Controller
         } catch (\Throwable $th) {
             return response()->json(['message'=>$th->getMessage()],400);
         }
-        
+    }
+
+    public function authorizeAdmin(Request $request){
+        return $request->user();
     }
 }
