@@ -1,12 +1,5 @@
 <template>
-    <div class="flex">
-        <label
-            v-if="url.length < props.number"
-            class="h-[120px] w-[120px] border border-dashed border-gray-400 flex justify-center items-center text-xl text-gray-300 cursor-pointer order-1"
-            @click="openFileDialog"
-        >
-            Chọn ảnh
-        </label>
+    <div class="">
         <input
             type="file"
             accept="image/png,image/jpeg"
@@ -14,7 +7,7 @@
             class="hidden"
             ref="inputImage"
         />
-        <div v-if="url?.length > 0" class="gap-2 flex">
+        <div class="gap-2 flex flex-wrap">
             <a
                 v-for="(item, index) in url"
                 :href="item"
@@ -31,6 +24,13 @@
                     x
                 </button>
             </a>
+            <label
+                v-if="url.length < props.number"
+                class="h-[120px] w-[120px] border border-dashed border-gray-400 flex justify-center items-center text-xl text-gray-300 cursor-pointer"
+                @click="openFileDialog"
+            >
+                {{ props.text ?? "Chọn ảnh" }}
+            </label>
         </div>
     </div>
 </template>
@@ -44,6 +44,7 @@ const props = defineProps({
         required: true,
     },
     data: Array,
+    text: String,
 });
 
 const images = ref([]);

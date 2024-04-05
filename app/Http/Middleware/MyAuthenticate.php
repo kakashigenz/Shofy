@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class IsAdmin
+class MyAuthenticate
 {
     /**
      * Handle an incoming request.
@@ -15,9 +15,10 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()->isAdmin){
-            return $next($request);
+        if ($request->cookie('token')){
+            $token = $request->cookie('token');
+            $request->headers->set('Authorization',"Bearer $token");
         }
-        return abort(401);
+        return $next($request);
     }
 }

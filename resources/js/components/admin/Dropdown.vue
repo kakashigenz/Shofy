@@ -12,7 +12,8 @@
                 <li
                     v-for="(item, index) in props.data"
                     :key="index"
-                    class="pl-5 py-2"
+                    class="pl-5 py-2 hover:bg-gray-200"
+                    @click="item.handleClick"
                 >
                     {{ item.title }}
                 </li>

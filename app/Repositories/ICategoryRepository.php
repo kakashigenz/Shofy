@@ -10,4 +10,5 @@ interface ICategoryRepository
     public function update($data, $id);
     public function destroy($id);
     function getList($type, $search, $start, $length);
+    public function where(string $field,string $value,string $op = '=');
 }

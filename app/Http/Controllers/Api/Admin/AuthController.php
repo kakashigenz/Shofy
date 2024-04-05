@@ -16,7 +16,8 @@ class AuthController extends Controller
                 'name' => 'required',
                 'password' => 'required|regex:/^(?=.*[A-Za-z\d])[A-Za-z\d]{8,}$/',
             ]);
-            
+            $hash_pass = bcrypt($user['password']);
+            data_set($user,'password',$hash_pass);
             User::create($user);
 
             return response()->json(['message'=>'success'],201);
@@ -48,7 +49,7 @@ class AuthController extends Controller
 
     public function logout(){
         try {
-            auth()->user()->tokens()->delete();
+            auth()->user()->currentAccessToken()->delete();
             return response()->json(['message'=>'logged out'],200);
         } catch (\Throwable $th) {
             return response()->json(['message'=>$th->getMessage()],400);

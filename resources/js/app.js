@@ -6,6 +6,7 @@ import { createPinia } from "pinia";
 import "boxicons";
 import { useUserStore } from "@/store/useUserStore";
 import createAxios from "@/api/axios";
+import { getCookie } from "./helper/cookie";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -25,19 +26,25 @@ const routes = [
                 name: "dashboard",
                 path: "dashboard",
                 component: () => import("@/pages/admin/Dashboard.vue"),
-                meta: { menu: "dashboard" },
+                meta: { menu: "dashboard", title: "Trang chủ" },
             },
             {
                 name: "product",
                 path: "san-pham",
                 component: () => import("@/pages/admin/Product.vue"),
-                meta: { menu: "product" },
+                meta: { menu: "product", title: "Quản lý sản phẩm" },
             },
             {
                 name: "category",
                 path: "danh-muc-san-pham",
                 component: () => import("@/pages/admin/ProductCategory.vue"),
-                meta: { menu: "product-category" },
+                meta: { menu: "product-category", title: "Quản lý danh mục" },
+            },
+            {
+                name: "attribute",
+                path: "thuoc-tinh",
+                component: () => import("@/pages/admin/Attribute.vue"),
+                meta: { menu: "attribute", title: "Quản lý thuộc tính" },
             },
         ],
         meta: { title: "Đăng nhập" },
@@ -60,7 +67,7 @@ const router = createRouter({
 
 router.beforeEach(async (to, from) => {
     try {
-        const token = localStorage.getItem("token");
+        const token = getCookie("token");
         if (token) {
             const response = await api.auth.authorize();
             if (response.status == 200 && response.data) {
@@ -72,15 +79,20 @@ router.beforeEach(async (to, from) => {
         }
         // no token
         if (!token && to.name != "admin") {
+            userStore.setUser(null);
             return { name: "admin" };
         }
     } catch (error) {
         if ((error.response.status = 401)) {
-            localStorage.removeItem("token");
+            userStore.setUser(null);
             return { name: "admin" };
         }
         console.log(error);
     }
+});
+
+router.afterEach((to, from) => {
+    document.title = to.meta.title;
 });
 
 app.use(router);

@@ -17,7 +17,13 @@
                 :key="index"
                 class="border-b"
             >
-                <td v-for="elem in item" class="px-5 py-3">{{ elem }}</td>
+                <td
+                    v-for="elem in item"
+                    class="px-5 py-3 overflow-ellipsis whitespace-nowrap overflow-hidden max-w-[250px]"
+                    :title="elem"
+                >
+                    {{ elem }}
+                </td>
                 <td class="flex items-center px-5 py-3">
                     <Button
                         class="bg-blue-500 p-[6px] mr-3"

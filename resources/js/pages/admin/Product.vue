@@ -25,19 +25,31 @@
                 />
             </div>
         </div>
-        <Modal ref="modal" :title="modalTitle" @acceptClick="handleAccept">
+        <!-- màn thêm sản phẩm -->
+        <Modal
+            ref="modal"
+            :title="modalTitle"
+            @acceptClick="handleAccept"
+            :custom-button="hideOrShowButton"
+            @custom-click="
+                () => {
+                    toggleStatusProduct(product);
+                }
+            "
+        >
             <Form
                 :validation-schema="schema"
                 class="min-w-[600px]"
                 @submit="handleSubmit"
             >
                 <div class="flex flex-col mb-2">
-                    <label for="name" class="mb-1">Tên sản phẩm</label>
+                    <label for="name" class="mb-1"
+                        >Tên sản phẩm <span class="text-red-500">*</span></label
+                    >
                     <Field
                         name="name"
                         id="name"
                         class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
-                        @update:model-value="generateSlug"
                         :model-value="product?.name"
                     />
                     <ErrorMessage
@@ -45,8 +57,10 @@
                         class="text-red-500"
                     ></ErrorMessage>
                 </div>
-                <div class="flex flex-col mb-2">
-                    <label for="slug" class="mb-1">Đường dẫn</label>
+                <!-- <div class="flex flex-col mb-2">
+                    <label for="slug" class="mb-1"
+                        >Đường dẫn <span class="text-red-500">*</span></label
+                    >
                     <Field
                         name="slug"
                         id="slug"
@@ -57,9 +71,11 @@
                         name="slug"
                         class="text-red-500"
                     ></ErrorMessage>
-                </div>
+                </div> -->
                 <div class="flex flex-col mb-2">
-                    <label for="category_id" class="mb-1">Danh mục</label>
+                    <label for="category_id" class="mb-1"
+                        >Danh mục <span class="text-red-500">*</span></label
+                    >
                     <Field
                         name="category_id"
                         as="select"
@@ -81,6 +97,51 @@
                         class="text-red-500"
                     ></ErrorMessage>
                 </div>
+                <!-- thuộc tính sản phẩm -->
+                <div
+                    class="flex flex-col mb-2"
+                    v-for="(attribute, index) in attributes"
+                    :key="attribute.id"
+                >
+                    <label :for="`attribute_${attribute.id}`" class="mb-1">{{
+                        attribute.name
+                    }}</label>
+                    <select
+                        v-if="modalMode == 1"
+                        ref="attributeElems"
+                        name="attribute"
+                        :id="`attribute_${attribute.id}`"
+                        class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                        <option
+                            v-for="item in attribute.values"
+                            :key="item.id"
+                            :value="item.id"
+                        >
+                            {{ item.value }}
+                        </option>
+                    </select>
+                    <select
+                        v-else-if="modalMode == 2"
+                        v-model="
+                            product.attribute_values[index].pivot
+                                .attribute_value_id
+                        "
+                        ref="attributeElems"
+                        name="attribute"
+                        :id="`attribute_${attribute.id}`"
+                        class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    >
+                        <option
+                            v-for="item in attribute.values"
+                            :key="item.id"
+                            :value="item.id"
+                        >
+                            {{ item.value }}
+                        </option>
+                    </select>
+                </div>
+                <!-- Hết thuộc tính sản phẩm -->
                 <div class="flex flex-col mb-2 h-[280px]">
                     <label for="description" class="mb-1">Mô tả</label>
                     <QuillEditor
@@ -89,25 +150,42 @@
                         id="description"
                         content-type="html"
                         :content="product?.description"
-                        :modules="modules"
                         :toolbar="toolbar"
                     />
-                    <p class="text-red-500"></p>
                 </div>
                 <div class="flex flex-col mb-2">
-                    <label for="description" class="mb-1">Ảnh bìa</label>
-                    <InputImage
-                        :number="1"
-                        ref="thumbRef"
-                        :data="
-                            product?.thumb
-                                ? ['/storage/' + product.thumb]
-                                : undefined
-                        "
-                    />
-                    <p class="text-red-500"></p>
+                    <label class="mb-1"
+                        >Ảnh sản phẩm <span class="text-red-500">*</span>
+                        <span class="text-gray-400">
+                            (Tối đa 1 ảnh bìa và 5 ảnh sản phẩm)
+                        </span></label
+                    >
+                    <div class="flex gap-x-2">
+                        <InputImage
+                            :number="1"
+                            ref="thumbRef"
+                            text="Ảnh bìa"
+                            :data="
+                                product?.thumb
+                                    ? ['/storage/' + product.thumb]
+                                    : undefined
+                            "
+                        />
+                        <InputImage
+                            :number="5"
+                            ref="imagesRef"
+                            :data="
+                                product?.product_image?.map(
+                                    (item) => '/storage/' + item.path
+                                )
+                            "
+                        />
+                    </div>
+                    <p v-if="errorMessage.images" class="text-red-500">
+                        {{ errorMessage.images }}
+                    </p>
                 </div>
-                <div class="mb-2" v-if="modalMode == 2">
+                <!-- <div class="mb-2" v-if="modalMode == 2">
                     <p>Trạng thái</p>
                     <div class="flex items-center gap-x-3">
                         <input
@@ -120,116 +198,191 @@
                             >Đang bán</label
                         >
                     </div>
+                </div> -->
+                <div class="flex mb-2" v-if="modalMode == 1">
+                    <input
+                        type="checkbox"
+                        name="hasManyVariation"
+                        id="hasManyVariation"
+                        class="mr-2"
+                        v-model="hasManyVariation"
+                    />
+                    <label
+                        for="hasManyVariation"
+                        class="cursor-pointer select-none"
+                        >Nhiều biến thể</label
+                    >
                 </div>
-                <div class="flex flex-col mb-2" v-if="modalMode == 1">
-                    <Panel title="Thuộc tính" :init-state="false">
-                        <ul>
-                            <li
-                                v-for="(item, index) in variation"
-                                :key="item.id"
-                                class="flex items-center p-2"
+                <!-- thông tin chi tiết sản phẩm -->
+                <div v-if="!hasManyVariation && modalMode == 1">
+                    <div class="flex flex-col mb-2">
+                        <label for="price"
+                            >Giá <span class="text-red-500">*</span></label
+                        >
+                        <input
+                            name="price"
+                            id="price"
+                            type="number"
+                            class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            @keypress="allowInputNumber"
+                            min="1000"
+                            v-model="productItem.price"
+                        />
+                        <p v-if="errorMessage.price" class="text-red-500">
+                            {{ errorMessage.price }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col mb-2">
+                        <label for="quantity"
+                            >Số lượng <span class="text-red-500">*</span></label
+                        >
+                        <input
+                            name="quantity"
+                            id="quantity"
+                            class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            @keypress="allowInputNumber"
+                            type="number"
+                            min="1"
+                            v-model="productItem.quantity"
+                        />
+                        <p v-if="errorMessage.quantity" class="text-red-500">
+                            {{ errorMessage.quantity }}
+                        </p>
+                    </div>
+                    <div class="flex flex-col mb-2">
+                        <label for="sku">SKU</label>
+                        <input
+                            name="sku"
+                            id="sku"
+                            class="outline-none border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            v-model="productItem.sku"
+                        />
+                    </div>
+                </div>
+
+                <!-- Phần thông tin biến thể sản phẩm -->
+                <VariationForm
+                    :error-message="errorMessage"
+                    :variations="variations"
+                    :mode="0"
+                    v-if="hasManyVariation && modalMode == 1"
+                    ref="productVariationComponent"
+                />
+                <!-- phần biến thể cho việc cập nhật sản phẩm -->
+                <div
+                    class="flex flex-col mb-2"
+                    v-if="hasManyVariation && modalMode == 2"
+                >
+                    <Panel title="Biến thể" :init-state="true">
+                        <div class="flex flex-col justify-center gap-3">
+                            <div
+                                class="p-3 flex flex-col bg-gray-200 rounded-lg relative"
+                                v-for="variation in variations"
+                                :key="variation.id"
                             >
-                                <p class="min-w-[80px]">{{ item.name }}:</p>
-                                <div>
-                                    <Chip
-                                        ref="chips"
-                                        unique
-                                        :limit="10"
-                                        @change-value="
-                                            () => {
-                                                changeValueChip(item, index);
-                                            }
-                                        "
-                                    ></Chip>
+                                <div class="flex flex-col gap-1 mb-1">
+                                    <label class=""
+                                        >Tên biến thể
+                                        <span class="text-red-500"
+                                            >*</span
+                                        ></label
+                                    >
+                                    <input
+                                        type="text"
+                                        class="border border-gray-300 rounded-lg py-1 px-2 outline-none bg-gray-300 text-gray-500"
+                                        v-model="variation.name"
+                                        :readonly="true"
+                                    />
                                 </div>
-                            </li>
-                        </ul>
+                                <div class="flex flex-col gap-1">
+                                    <label
+                                        >Giá trị biến thể
+                                        <span class="text-red-500"
+                                            >*</span
+                                        ></label
+                                    >
+                                    <div class="flex gap-2">
+                                        <span
+                                            class="px-3 py-2 bg-gray-300 rounded-lg relative"
+                                            v-for="op in variation?.option"
+                                        >
+                                            {{ op.value }}
+                                            <button
+                                                v-if="
+                                                    variation?.option?.length >
+                                                    1
+                                                "
+                                                type="button"
+                                                class="absolute -top-1 -right-1 bg-red-500 rounded-full w-[16px] h-[16px] text-center leading-4 text-white"
+                                                @click="
+                                                    () => {
+                                                        showDeleteOptionDialog(
+                                                            op,
+                                                            2
+                                                        );
+                                                    }
+                                                "
+                                            >
+                                                x
+                                            </button>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            class="px-3 py-1 flex items-center justify-center bg-green-500 rounded-lg text-white text-xl"
+                                            @click="
+                                                createVariationOption(
+                                                    $event,
+                                                    variation,
+                                                    2
+                                                )
+                                            "
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex justify-center items-center absolute top-1 right-3"
+                                >
+                                    <Button
+                                        v-if="variations.length > 1"
+                                        class="px-3 py-1 bg-red-500 rounded-lg text-white font-medium"
+                                        :handle-click="
+                                            () =>
+                                                showDeleteOptionDialog(
+                                                    variation,
+                                                    1
+                                                )
+                                        "
+                                    >
+                                        x
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-center">
+                                <button
+                                    class="p-2 border border-dashed border-blue-500 rounded-lg text-blue-500"
+                                    type="button"
+                                    @click="
+                                        () => {
+                                            createVariationOption(
+                                                $event,
+                                                null,
+                                                1
+                                            );
+                                        }
+                                    "
+                                    v-if="variations.length < 3"
+                                >
+                                    Thêm biến thể
+                                    {{ `(${variations.length}/3)` }}
+                                </button>
+                            </div>
+                        </div>
                     </Panel>
                 </div>
-                <div class="mb-2" v-if="productItem.length > 0">
-                    <table class="border-collapse w-full">
-                        <caption class="bg-gray-300 p-2 text-left">
-                            Sản phẩm tương ứng
-                        </caption>
-                        <thead>
-                            <tr>
-                                <th class="border border-gray-300 p-1">Chọn</th>
-                                <th class="border border-gray-300 p-1">Ảnh</th>
-                                <th class="border border-gray-300 p-1">
-                                    Thuộc tính
-                                </th>
-                                <th class="border border-gray-300 p-1">SKU</th>
-                                <th class="border border-gray-300 p-1">Giá</th>
-                                <th class="border border-gray-300 p-1">
-                                    Tồn kho
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="(item, index) in productItem"
-                                :key="index"
-                            >
-                                <td class="border border-gray-300">
-                                    <div class="flex justify-center">
-                                        <input
-                                            type="checkbox"
-                                            class="h-4 w-4 cursor-pointer"
-                                            v-model="item.isCheck"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="border border-gray-300">
-                                    <div class="flex justify-center">
-                                        <InputImage
-                                            :number="1"
-                                            @change-data="
-                                                (images) => {
-                                                    productImage.push(images);
-                                                }
-                                            "
-                                        />
-                                    </div>
-                                </td>
-                                <td class="border border-gray-300 text-center">
-                                    {{ item.variation.join("-") }}
-                                </td>
-                                <td class="border border-gray-300 p-1">
-                                    <div class="flex">
-                                        <input
-                                            type="text"
-                                            class="px-2 py-1 border border-gray-300 outline-none"
-                                            v-model="item.sku"
-                                        />
-                                    </div>
-                                </td>
-                                <td class="border border-gray-300 p-1">
-                                    <div class="flex">
-                                        <input
-                                            type="text"
-                                            class="p-1 border border-gray-300 outline-none"
-                                            v-model="item.price"
-                                            @keypress="allowInputNumber"
-                                        />
-                                        <span class="border border-gray-300 p-1"
-                                            >đ</span
-                                        >
-                                    </div>
-                                </td>
-                                <td class="border border-gray-300">
-                                    <div class="flex">
-                                        <input
-                                            type="text"
-                                            class="px-2 py-1 border border-gray-300 outline-none"
-                                            v-model="item.quantity"
-                                            @keypress="allowInputNumber"
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Biểu mẫu cập nhật sản phẩm -->
                 <div class="mb-2" v-if="modalMode == 2">
                     <Panel
                         v-for="item in product?.product_item"
@@ -241,24 +394,13 @@
                         class="mb-2"
                     >
                         <div class="flex justify-between gap-4">
-                            <div class="w-[30%]">
-                                <InputImage
-                                    :number="1"
-                                    :data="
-                                        item.image
-                                            ? ['/storage/' + item.image]
-                                            : undefined
-                                    "
-                                    ref="productImage"
-                                />
-                            </div>
-                            <div class="w-[70%]">
+                            <div class="w-full">
                                 <div class="flex flex-col gap-1">
                                     <label>SKU</label>
                                     <input
                                         type="text"
                                         class="outline-none border border-gray-300 rounded-md px-2"
-                                        v-model="item.SKU"
+                                        v-model="item.sku"
                                     />
                                 </div>
                                 <div class="flex flex-col gap-1">
@@ -277,82 +419,151 @@
                                         v-model="item.quantity"
                                     />
                                 </div>
-                                <div>
-                                    <p>Trạng thái</p>
-                                    <div class="flex items-center gap-x-3">
-                                        <input
-                                            type="checkbox"
-                                            class="w-4 h-4 cursor-pointer"
-                                            v-model="item.show"
-                                        />
-                                        <label>Đang bán</label>
-                                    </div>
+                                <div class="mt-2">
+                                    <button
+                                        type="button"
+                                        v-if="product?.product_item.length > 1"
+                                        class="block ml-auto px-3 py-2 bg-red-500 outline-none text-white rounded-lg"
+                                        @click="
+                                            () => {
+                                                item.name =
+                                                    item.variation_option
+                                                        .map((e) => e.value)
+                                                        .join('-');
+                                                showDeleteOptionDialog(item, 3);
+                                            }
+                                        "
+                                    >
+                                        Xóa
+                                    </button>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="p-3 border mt-6 flex flex-col gap-y-3">
-                            <div
-                                v-for="(vari, index) in variation"
-                                :key="vari.id"
-                                class="flex"
-                            >
-                                <label class="mr-3 min-w-[80px]"
-                                    >{{ vari.name }}:</label
-                                >
-                                <SelectInput
-                                    v-model="item.variation_option[index].id"
-                                    :options="vari.option"
-                                >
-                                    <template #remove="prop">
-                                        <button
-                                            type="button"
-                                            class="text-sm rounded-full bg-red-500 w-4 h-4 text-white leading-[14px] text-center"
-                                            @click.stop="
-                                                removeOption($event, prop.item)
-                                            "
-                                        >
-                                            x
-                                        </button>
-                                    </template>
-                                </SelectInput>
-                                <button
-                                    type="button"
-                                    class="outline-none flex items-center ml-2 border rounded-lg border-gray-300"
-                                    @click="createVariationOption($event, vari)"
-                                >
-                                    <box-icon name="plus"></box-icon>
-                                </button>
-                            </div>
-                            <div class="p-10">
-                                <Button :handle-click="handleDelete">Xoá sản phẩm này</Button>
                             </div>
                         </div>
                     </Panel>
                 </div>
+                <!--Hết phần thông tin biến thể sản phẩm -->
+                <!-- Kích thước sản phẩm -->
+                <Panel title="Kích thước sản phẩm" init-state>
+                    <div class="flex flex-col gap-1 mb-2">
+                        <label
+                            >Khối lượng <span class="text-sm">(g)</span>
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <Field
+                            v-if="modalMode == 1"
+                            name="weight"
+                            class="outline-none border border-gray-300 rounded-md px-2"
+                        />
+                        <Field
+                            v-else
+                            name="weight"
+                            class="outline-none border border-gray-300 rounded-md px-2"
+                            :model-value="product.weight"
+                        />
+                        <ErrorMessage
+                            name="weight"
+                            class="text-red-500"
+                        ></ErrorMessage>
+                    </div>
+                    <div class="flex gap-1">
+                        <div class="flex flex-col gap-1 flex-1">
+                            <label
+                                >Chiều cao
+                                <span class="text-sm">(cm)</span></label
+                            >
+                            <Field
+                                v-if="modalMode == 1"
+                                name="height"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                            />
+                            <Field
+                                v-else
+                                name="height"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                                :model-value="product.height"
+                            />
+                            <ErrorMessage
+                                name="height"
+                                class="text-red-500"
+                            ></ErrorMessage>
+                        </div>
+                        <div class="flex flex-col gap-1 flex-1">
+                            <label
+                                >Chiều dài
+                                <span class="text-sm">(cm)</span></label
+                            >
+                            <Field
+                                v-if="modalMode == 1"
+                                name="length"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                            />
+                            <Field
+                                v-else
+                                name="length"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                                :model-value="product.length"
+                            />
+                            <ErrorMessage
+                                name="length"
+                                class="text-red-500"
+                            ></ErrorMessage>
+                        </div>
+                        <div class="flex flex-col gap-1 flex-1">
+                            <label
+                                >Chiều rộng
+                                <span class="text-sm">(cm)</span></label
+                            >
+                            <Field
+                                v-if="modalMode == 1"
+                                name="width"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                            />
+                            <Field
+                                v-else
+                                name="width"
+                                class="outline-none border border-gray-300 rounded-md px-2"
+                                :model-value="product.width"
+                            />
+                            <ErrorMessage
+                                name="width"
+                                class="text-red-500"
+                            ></ErrorMessage>
+                        </div>
+                    </div>
+                </Panel>
+                <!-- Hêt phần kích thước sản phẩm -->
                 <button type="submit" :v-show="false" ref="btnSubmit"></button>
+                <Modal
+                    ref="optionDeleteModal"
+                    :title="optionDeleteData.title"
+                    @accept-click="
+                        () => {
+                            if (optionDeleteModalData.mode == 1) {
+                                deleteVariation(optionDeleteModalData.data);
+                            } else if (optionDeleteModalData.mode == 2) {
+                                removeOption(optionDeleteModalData.data);
+                            } else if (optionDeleteModalData.mode == 3) {
+                                removeProductItem(optionDeleteModalData.data);
+                            }
+                        }
+                    "
+                >
+                    <p>{{ optionDeleteData.content }}</p>
+                </Modal>
             </Form>
             <Modal
                 ref="optionModal"
-                :title="optionVariation.title"
-                @accept-click="
-                    () => {
-                        optionSubmitBtn.click();
-                    }
-                "
+                :title="optionVariationFormData.title"
+                @accept-click="submitVariationOption"
             >
-                <Form
-                    v-if="optionVariation.mode == 1"
-                    :validation-schema="optionVariation.schema"
-                    @submit="submitVariationOption"
-                >
-                    <label class="mr-2">Giá trị</label>
-                    <Field
-                        name="variation_option"
-                        class="px-2 outline-none border border-gray-300"
-                    />
-                    <ErrorMessage name="variation_option" />
-                    <button class="hidden" ref="optionSubmitBtn"></button>
-                </Form>
+                <VariationForm
+                    ref="variationComponent"
+                    :mode="optionVariationFormData.modeVariationTable"
+                    :variations="optionVariationFormData.variations"
+                    :max-option="optionVariationFormData.maxOption"
+                    :variation="optionVariationFormData.variation"
+                    :error-message="errorMessage"
+                />
             </Modal>
         </Modal>
         <Modal
@@ -373,7 +584,6 @@
 import Button from "@/components/Button.vue";
 import Modal from "@/components/Modal.vue";
 import Table from "@/components/admin/Table.vue";
-import Chip from "@/components/Chip.vue";
 import InputImage from "@/components/InputImage.vue";
 import { QuillEditor } from "@vueup/vue-quill";
 import * as yup from "yup";
@@ -382,25 +592,25 @@ import { computed, reactive, ref, watch } from "vue";
 import createAxios from "@/api/axios";
 import { toast } from "vue3-toastify";
 import "vue3-toastify/dist/index.css";
-import { removeVI } from "jsrmvi";
+// import { removeVI } from "jsrmvi";
 import debounce from "@/helper/debounce";
 import moment from "moment";
 import Loading from "@/components/Loading.vue";
 import Pagination from "@/components/Pagination.vue";
 import Panel from "@/components/Panel.vue";
 import "@vueup/vue-quill/dist/vue-quill.snow.css";
-import BlotFormatter from "quill-blot-formatter";
-import SelectInput from "@/components/admin/SelectInput.vue";
+// import BlotFormatter from "quill-blot-formatter";
+import VariationForm from "@/components/admin/VariationForm.vue";
 
-const modules = {
-    module: BlotFormatter,
-};
+// const modules = {
+//     module: BlotFormatter,
+// };
 const toolbar = {
     container: [
         ["bold", "italic", "underline", "strike"],
         [{ align: [] }],
         [{ size: ["small", false, "large", "huge"] }],
-        ["link", "image"],
+        ["link"],
         [{ list: "ordered" }, { list: "bullet" }],
         ["clean"],
     ],
@@ -409,18 +619,24 @@ const toolbar = {
 const schema = yup.object({
     name: yup.string().required("Trường này là bắt buộc"),
     category_id: yup.number().typeError("Danh mục không hợp lệ"),
-    slug: yup.string().required("Trường này là bắt buộc"),
     varitaion: yup
         .array()
         .max(3, "Chỉ có thể tạo tối đa ${max} biến thể")
         .min(1, "Trường này là bắt buộc"),
+    weight: yup
+        .number()
+        .required("Thông tin này là bắt buộc")
+        .typeError("Cân nặng không hợp lệ"),
+    height: yup.string().matches(/^\d*$/, "Chiều cao không hợp lệ"),
+    length: yup.string().matches(/^\d*$/, "Chiều dài không hợp lệ"),
+    width: yup.string().matches(/^\d*$/, "Chiều rộng không hợp lệ"),
 });
+const hasManyVariation = ref(false);
 const modal = ref(null);
 const btnSubmit = ref(null);
 const modalTitle = ref("Thêm danh mục");
 const modalMode = ref(1); // 1 is create,2 is update
 const api = createAxios();
-const slugText = ref("");
 const listData = ref([]);
 const category = ref([]);
 const currentCategory = ref("");
@@ -432,8 +648,6 @@ const deleteDialogData = reactive({
 const deleteDialog = ref();
 const searchText = ref("");
 const isLoading = ref(true);
-const chips = ref();
-const chipData = ref(new Map()); // data optionVariation in chip
 const paginator = reactive({
     page: 1,
     length: 10,
@@ -442,34 +656,72 @@ const paginator = reactive({
     //start = (page - 1) * length
 });
 const optionModal = ref();
-const variation = ref();
-const optionVariation = reactive({
-    title: "Thêm giá trị thuộc tính",
-    schema: yup.object({
-        variation_option: yup.string().required("Trường này là bắt buộc"),
-    }),
+const variations = ref([{}]);
+const optionVariationFormData = reactive({
+    title: "Thêm biến thể",
     mode: 1,
-    value: "",
-    id: undefined,
+    modeVariationTable: 0,
+    variations: [{}],
+    variation: {},
+    maxOption: undefined,
 });
-const optionSubmitBtn = ref();
-const productItem = ref([]);
+const productItems = ref([]);
 const editorRef = ref();
 const thumbRef = ref();
-const productImage = ref([]);
+const imagesRef = ref();
 const product = ref();
+const attributes = ref([]);
+const attributeElems = ref([]);
+let timeoutId;
+const errorMessage = ref({
+    quantity: "",
+    price: "",
+    images: "",
+    variations: new Map(),
+    variationOptions: new Map(),
+});
+const productItem = ref({
+    sku: "",
+    price: 1000,
+    quantity: 1,
+});
+const productVariationComponent = ref(null);
+const variationComponent = ref(null);
+const optionDeleteData = reactive({
+    title: "Cảnh báo",
+    content: "",
+});
+const optionDeleteModal = ref();
+const optionDeleteModalData = reactive({
+    title: "",
+    content: "",
+    mode: 1,
+    data: {},
+});
+const hideOrShowButton = ref({
+    text: "",
+    class: "",
+});
 
 watch(
     searchText,
     () => {
-        debounce(getListCategory, 1000);
+        clearTimeout(timeoutId);
+        timeoutId = debounce(getListProduct, 1000);
     },
     { immediate: true }
 );
 
 watch(currentCategory, (newValue) => {
+    loadAttribute(newValue);
+});
+
+watch(hasManyVariation, (newValue) => {
     if (newValue) {
-        loadVariation(newValue);
+        // productItem.value = null;
+    } else {
+        variations.value = [];
+        productItems.value = [];
     }
 });
 
@@ -482,57 +734,21 @@ const listCategory = computed(() => {
     }));
 });
 
-function changeValueChip(parentVariation, index) {
-    const data = {
-        variation: parentVariation.id,
-        option: chips.value[index].data,
-    };
-    chipData.value.set(parentVariation.id, data);
+async function loadAttribute(idCategory) {
+    isLoading.value = true;
+    const tmp = await api.attribute.getByCategory(
+        idCategory == 0 ? 0 : idCategory
+    );
+    attributes.value = tmp?.data;
+    isLoading.value = false;
 }
 
 function loadVariation(value) {
     const tmp = category.value.find((item) => {
         return item.id === value;
     });
-    variation.value = tmp.variation;
+    variations.value = tmp.variation;
 }
-
-watch(
-    chipData,
-    (newValue) => {
-        let res = [];
-
-        for (const elem of newValue) {
-            if (res.length == 0) {
-                res = elem[1].option.map((item) => {
-                    return {
-                        isCheck: true,
-                        sku: "",
-                        price: 1000,
-                        quantity: 1,
-                        variation: [item],
-                    };
-                });
-            } else {
-                const tmp = [...res];
-                res = [];
-                for (const first of tmp) {
-                    for (const second of elem[1].option) {
-                        res.push({
-                            isCheck: true,
-                            sku: "",
-                            price: 1000,
-                            quantity: 1,
-                            variation: [...first.variation, second],
-                        });
-                    }
-                }
-            }
-        }
-        productItem.value = [...res];
-    },
-    { deep: true }
-);
 
 function allowInputNumber(e) {
     if (!((e.keyCode >= 48 && e.keyCode <= 57) || e.keyCode === 8)) {
@@ -545,8 +761,9 @@ function openModal(mode) {
         modalTitle.value = "Thêm sản phẩm";
         modalMode.value = 1;
     } else if ((mode = "edit")) {
-        modalTitle.value = "Sửa sản phẩm";
+        modalTitle.value = "Chi tiết sản phẩm";
         modalMode.value = 2;
+        console.log(modalMode.value);
     } else {
         throw new Error("action invalid");
     }
@@ -557,28 +774,124 @@ function closeModal() {
     modal.value.status = false;
 }
 
-function handleSubmit(value) {
+function handleSubmit(value, meta) {
+    // console.log(value);
+    let valid = true;
+
     const form = new FormData();
 
     switch (modalMode.value) {
         case 1:
-            isLoading.value = true;
+            // validate
+            productItems.value =
+                productVariationComponent.value?.productItems ?? [];
+            variations.value =
+                productVariationComponent.value?.variations ?? [];
+            const chipData =
+                productVariationComponent.value?.chipData ?? new Map();
+            const chips = productVariationComponent.value?.chips ?? [];
+
+            if (
+                !thumbRef.value?.images.length ||
+                !imagesRef.value?.images.length
+            ) {
+                errorMessage.value.images = "Trường này là bắt buộc";
+                valid = false;
+            } else {
+                errorMessage.value.images = "";
+            }
+
+            if (!hasManyVariation.value) {
+                if (!productItem.value?.price) {
+                    errorMessage.value.price = "Trường này là bắt buộc";
+                    valid = false;
+                } else {
+                    errorMessage.value.price = "";
+                }
+
+                if (!productItem.value?.quantity) {
+                    errorMessage.value.quantity = "Trường này là bắt buộc";
+                    valid = false;
+                } else {
+                    errorMessage.value.quantity = "";
+                }
+            } else {
+                if (!variations.value?.length) {
+                    toast.error("Bạn chưa thêm biến thể");
+                    valid = false;
+                }
+
+                variations.value &&
+                    variations.value.forEach((item, index) => {
+                        if (!item.name.length) {
+                            errorMessage.value.variations.set(
+                                index,
+                                "Trường này là bắt buộc"
+                            );
+                            valid = false;
+                            return;
+                        } else {
+                            valid = true;
+                            errorMessage.value.variations.clear(index);
+                        }
+
+                        if (!chips[index].data?.length) {
+                            errorMessage.value.variationOptions.set(
+                                index,
+                                "Trường này là bắt buộc"
+                            );
+                            valid = false;
+                            return;
+                        } else {
+                            valid = true;
+                            errorMessage.value.variationOptions.clear(index);
+                        }
+                    });
+            }
+
+            if (!valid) {
+                return;
+            }
+            const thumb = thumbRef.value.images[0];
+            const images = imagesRef.value.images;
+            const models = [...productItems.value];
+            const attributeValues = [];
 
             for (const key in value) {
                 form.append(key, value[key]);
             }
             form.append("description", editorRef.value.getHTML());
-            form.append("show", true);
-            form.append("thumb", thumbRef.value.images[0]);
+            form.append("status", 0);
+            form.append("thumb", thumb);
             form.append(
                 "variation",
-                JSON.stringify(Object.fromEntries(chipData.value))
+                JSON.stringify(Object.fromEntries(chipData))
             );
-            form.append("product_item", JSON.stringify(productItem.value));
-            productImage.value.forEach((item, index) => {
-                form.append(`product_image_${index}`, item[0]);
+            if (!hasManyVariation.value) {
+                models.push({
+                    isCheck: true,
+                    ...productItem.value,
+                });
+            }
+
+            form.append("product_item", JSON.stringify(models));
+
+            images.forEach((item, index) => {
+                form.append(`product_image_${index}`, item);
             });
 
+            form.append("total_image", images.length);
+
+            attributeElems.value.forEach((item) => {
+                attributeValues.push(item.value);
+            });
+            form.append("attribute_values", JSON.stringify(attributeValues));
+            form.append("weight", value.weight);
+            form.append("height", value.height ?? 0);
+            form.append("length", value.length ?? 0);
+            form.append("width", value.width ?? 0);
+
+            isLoading.value = true;
             api.product
                 .create(form, {
                     "Content-Type": "multipart/form-data",
@@ -589,7 +902,7 @@ function handleSubmit(value) {
                             autoClose: 3000,
                         });
                         closeModal();
-                        getListCategory(api.category.PRODUCT);
+                        getListProduct();
                     }
                 })
                 .catch((error) => {
@@ -600,6 +913,42 @@ function handleSubmit(value) {
                 });
             break;
         case 2:
+            //validate
+            if (
+                !thumbRef.value?.images.length ||
+                !imagesRef.value?.images.length
+            ) {
+                errorMessage.value.images = "Bạn chưa thêm ảnh";
+                valid = false;
+            } else {
+                errorMessage.value.images = "";
+            }
+
+            if (!hasManyVariation.value) {
+                if (!productItem.value?.price) {
+                    errorMessage.value.price = "Trường này là bắt buộc";
+                    valid = false;
+                } else {
+                    errorMessage.value.price = "";
+                }
+
+                if (!productItem.value?.quantity) {
+                    errorMessage.value.quantity = "Trường này là bắt buộc";
+                    valid = false;
+                } else {
+                    errorMessage.value.quantity = "";
+                }
+            } else {
+                if (!variations.value?.length) {
+                    toast.error("Bạn chưa thêm biến thể");
+                    valid = false;
+                }
+            }
+
+            if (!valid) {
+                return;
+            }
+
             isLoading.value = true;
 
             product.value.name = value.name;
@@ -607,13 +956,19 @@ function handleSubmit(value) {
             product.value.category_id = value.category_id;
             product.value.description = editorRef.value.getHTML();
             product.value.thumb_deleted = thumbRef.value.deleted[0];
-            productImage.value.forEach((item, index) => {
-                form.append(`file_item_${index}`, item.images[0]);
-                product.value[`product_image_delete_${index}`] =
-                    item.deleted[0];
-            });
+            product.value.images_deleted = imagesRef.value.deleted;
+            product.value.weight = value.weight;
+            product.value.height = value.height ?? 0;
+            product.value.length = value.length ?? 0;
+            product.value.width = value.width ?? 0;
+
             form.append("data", JSON.stringify(product.value));
             form.append("file_thumb", thumbRef.value.images[0]);
+
+            imagesRef.value.images.forEach((item, index) => {
+                form.append(`file_image_${index}`, item);
+            });
+            form.append("total_image", imagesRef.value.images.length);
 
             api.product
                 .update(product.value.id, form, {
@@ -624,8 +979,7 @@ function handleSubmit(value) {
                         toast.success("Thành công", {
                             autoClose: 3000,
                         });
-                        closeModal();
-                        getListCategory(api.category.PRODUCT);
+                        getListProduct();
                     }
                 })
                 .catch((error) => {
@@ -633,7 +987,9 @@ function handleSubmit(value) {
                 })
                 .finally(() => {
                     isLoading.value = false;
+                    closeModal();
                 });
+            break;
         default:
             break;
     }
@@ -643,11 +999,11 @@ function handleAccept() {
     btnSubmit.value.click();
 }
 
-function generateSlug(value) {
-    slugText.value = removeVI(value);
-}
+// function generateSlug(value) {
+//     slugText.value = removeVI(value);
+// }
 /**get list product */
-function getListCategory() {
+function getListProduct() {
     if (!isLoading.value) {
         isLoading.value = true;
     }
@@ -674,11 +1030,18 @@ function getCategory() {
 
 async function handleCreate() {
     try {
-        slugText.value = "";
+        // slugText.value = "";
+        productItem.value = {
+            sku: "",
+            price: 1000,
+            quantity: 1,
+        };
+        hideOrShowButton.value = null;
         currentCategory.value = "";
-        productItem.value = [];
-        variation.value = [];
+        productItems.value = [];
+        variations.value = [];
         product.value = null;
+        hasManyVariation.value = false;
         isLoading.value = true;
         const response = await getCategory();
         isLoading.value = false;
@@ -693,15 +1056,32 @@ async function handleCreate() {
 async function handleEdit(index) {
     try {
         currentCategory.value = "";
-        productItem.value = [];
-        variation.value = [];
+        productItems.value = [];
+        variations.value = [];
         const elem = listData.value[index];
         isLoading.value = true;
         const res = await getCategory();
         category.value = res.data.data;
         const resProduct = await api.product.getProduct(elem.id);
         product.value = resProduct.data;
-        slugText.value = product.value.slug;
+        hasManyVariation.value = product.value?.variations?.length
+            ? true
+            : false;
+        variations.value = product.value.variations.slice();
+        hideOrShowButton.value = {
+            text: "",
+            class: "",
+        };
+        if (product.value.status == 1) {
+            // 1 là hiện
+            hideOrShowButton.value.text = "Ẩn sản phẩm";
+            hideOrShowButton.value.class = "bg-red-500";
+        } else if (product.value.status == 2) {
+            // 2 là ẩn
+            hideOrShowButton.value.text = "Hiện sản phẩm";
+            hideOrShowButton.value.class = "bg-green-500";
+        }
+        // slugText.value = product.value.slug;
         currentCategory.value = product.value.category_id;
         isLoading.value = false;
         openModal("edit");
@@ -725,109 +1105,209 @@ function requestDelete() {
         .then((res) => {
             if (res.data.message == "success") {
                 toast.success("Xoá thành công");
-                getListCategory()
+                getListProduct();
             }
         })
         .catch((error) => {
-            if (error.response.data.code == 23000) {
-                toast.error(
-                    "Không thể xoá danh mục do đã có danh mục con hoặc sản phẩm liên kết"
-                );
-            } else {
-                toast.error(error.message);
-            }
+            toast.error(error.message);
+        })
+        .finally(() => {
+            deleteDialog.value.status = false;
         });
-    deleteDialog.value.status = false;
 }
 
 function handleChangePage(page) {
     paginator.page = page;
-    getListCategory(api.category.PRODUCT);
+    getListProduct(api.category.PRODUCT);
 }
 
-function createVariationOption(e, item) {
-    optionVariation.mode = 1;
+function createVariationOption(e, item, modeVariationTable = 0) {
+    optionVariationFormData.mode = 1;
     optionModal.value.status = true;
-    optionVariation.id = item.id;
+    optionVariationFormData.modeVariationTable = modeVariationTable;
+    optionVariationFormData.variations = variations;
+    optionVariationFormData.variation = item;
+    if (item) optionVariationFormData.maxOption = 10 - item.option.length;
 }
 
-function submitVariationOption(value) {
+function submitVariationOption() {
+    const component = variationComponent.value;
     const data = {
-        value: value.variation_option,
-        variation_id: optionVariation.id,
+        product_id: product.value?.id,
+        product_items: component.productItems,
+        variation_options: component.chips[0].data,
     };
-    api.variationOption
-        .create(data)
-        .then((res) => {
+    isLoading.value = true;
+    switch (optionVariationFormData.modeVariationTable) {
+        case 1:
+            const variation = component.variations[0];
+            data.variation = variation;
+            console.log(data);
+            api.variation
+                .create(data)
+                .then(async (res) => {
+                    if (res.data.message == "success") {
+                        toast.success("Thành công");
+                        optionModal.value.status = false;
+                        const resProduct = await api.product.getProduct(
+                            product.value.id
+                        );
+                        product.value = resProduct.data;
+                        variations.value = product.value.variations;
+                    }
+                })
+                .catch((error) => {
+                    const message =
+                        error.response.data.code == 2406
+                            ? error.response.data?.message
+                            : error.message;
+                    toast.error(message);
+                })
+                .finally(() => {
+                    isLoading.value = false;
+                });
+            break;
+        case 2:
+            const variation_id = optionVariationFormData.variation?.id;
+            data.variation_id = variation_id;
+            console.log(data);
+            api.variationOption
+                .create(data)
+                .then(async (res) => {
+                    isLoading.value = true;
+                    if (res.data.message == "success") {
+                        toast.success("Thành công");
+                        optionModal.value.status = false;
+                        const resProduct = await api.product.getProduct(
+                            product.value.id
+                        );
+                        product.value = resProduct.data;
+                        variations.value = product.value.variations;
+                    }
+                })
+                .catch((error) => {
+                    const message =
+                        error.response.data.code == 2406
+                            ? error.response.data?.message
+                            : error.message;
+                    toast.error(message);
+                })
+                .finally(() => {
+                    isLoading.value = false;
+                });
+            break;
+        default:
+            isLoading.value = false;
+            break;
+    }
+}
+
+function deleteVariation(variation) {
+    console.log(variation);
+    isLoading.value = true;
+    api.variation
+        .delete(variation.id)
+        .then(async (res) => {
             if (res.data.message == "success") {
-                toast.success("Thành công");
-                optionModal.value.status = false;
+                toast.success("Xoá thành công");
+                optionDeleteModal.value.status = false;
+                const resProduct = await api.product.getProduct(
+                    product.value.id
+                );
+                product.value = resProduct.data;
+                variations.value = product.value.variations;
             }
-            isLoading.value = true;
-            return getCategory();
+            return getCategory(currentCategory.value.id);
         })
-        .then((res) => {
-            category.value = res.data.data;
-            loadVariation(currentCategory.value);
+        .catch((error) => {
+            if (error.response.data.code == 23000) {
+                toast.error(
+                    "Không thể xoá thuộc tính do đã có sản phẩm liên kết"
+                );
+            } else {
+                toast.error(error.message);
+            }
+        })
+        .finally(() => {
+            isLoading.value = false;
+        });
+}
+
+function removeOption(item) {
+    isLoading.value = true;
+    api.variationOption
+        .delete(item.id)
+        .then(async (res) => {
+            if (res.data.message == "success") {
+                toast.success("Xoá thành công");
+                optionDeleteModal.value.status = false;
+                const resProduct = await api.product.getProduct(
+                    product.value.id
+                );
+                product.value = resProduct.data;
+                variations.value = product.value.variations;
+            }
         })
         .catch((error) => {
             toast.error(error.message);
         })
         .finally(() => {
             isLoading.value = false;
+            optionDeleteModal.value.status = false;
         });
 }
 
-// function deleteVariation() {
-//     api.variation
-//         .delete(variation.id)
-//         .then((res) => {
-//             if (res.data.message == "success") {
-//                 toast.success("Xoá thành công");
-//                 variationModal.value.status = false;
-//             }
-//             return getCategory(currentCategory.value.id);
-//         })
-//         .then((res) => {
-//             currentCategory.value = res.data;
-//         })
-//         .catch((error) => {
-//             if (error.response.data.code == 23000) {
-//                 toast.error(
-//                     "Không thể xoá thuộc tính do đã có sản phẩm liên kết"
-//                 );
-//             } else {
-//                 toast.error(error.message);
-//             }
-//         });
-// }
+function showDeleteOptionDialog(data, mode) {
+    if (mode == 1) {
+        //1 là xóa biến thể
+        optionDeleteModal.value.status = true;
+        optionDeleteModalData.mode = 1;
+        optionDeleteModalData.data = data;
+        optionDeleteData.content = `Xóa biến thể "${data.name}" sẽ xóa tất cả các biến thể sản phẩm có liên kết với nó. Tiếp tục?`;
+    } else if (mode == 2) {
+        //2 là xóa giá trị biến thể
+        optionDeleteModal.value.status = true;
+        optionDeleteModalData.data = data;
+        optionDeleteModalData.mode = 2;
+        optionDeleteData.content = `Xóa giá trị "${data.value}" sẽ xóa tất cả các biến thể sản phẩm có liên kết với nó. Tiếp tục?`;
+    } else if (mode == 3) {
+        //3 là biến thể sản phẩm
+        optionDeleteModal.value.status = true;
+        optionDeleteModalData.data = data;
+        optionDeleteModalData.mode = 3;
+        optionDeleteData.content = `Bạn có muốn xóa biến thể sản phẩm ${data.name} không?`;
+    }
+}
 
-function removeOption(e, item) {
-    api.variationOption
-        .delete(item.id)
-        .then((res) => {
-            if (res.data.message == "success") {
-                toast.success("Xoá thành công");
-            }
-            isLoading.value = true;
-            return getCategory();
-        })
-        .then((res) => {
-            category.value = res.data.data;
-            loadVariation(currentCategory.value);
-        })
-        .catch((error) => {
-            if (error.response.data.code == 23000) {
-                toast.error(
-                    "Không thể xoá giá trị này do đã có sản phẩm liên kết"
-                );
-            } else {
-                toast.error(error.message);
-            }
-        })
-        .finally(() => {
-            isLoading.value = false;
-        });
+async function removeProductItem(data) {
+    try {
+        isLoading.value = true;
+        const response = await api.productItem.delete(data.id);
+        if (response.data.message == "success") {
+            toast.success("Xoá thành công");
+            const resProduct = await api.product.getProduct(product.value.id);
+            product.value = resProduct.data;
+            variations.value = product.value.variations;
+        }
+    } catch (error) {
+        toast.error(error.message);
+    }
+
+    isLoading.value = false;
+    optionDeleteModal.value.status = false;
+}
+
+async function toggleStatusProduct(item) {
+    try {
+        const status = product.value.status == 1 ? 2 : 1;
+        const res = await api.product.changeStatus(item.id, status);
+        if (res.data.message == "success") {
+            toast.success("Thành công");
+            closeModal();
+        }
+    } catch (error) {
+        toast.error(error.message);
+    }
 }
 </script>
 

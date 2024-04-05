@@ -1,10 +1,9 @@
+import { getCookie } from "@/helper/cookie";
 import axios from "axios";
-
-const token = localStorage.getItem("token");
 
 function createAxios() {
     const api = axios.create({
-        baseURL: "/api/admin",
+        baseURL: "/api",
     });
     const PRODUCT = 1;
     const BLOG = 2;
@@ -14,16 +13,14 @@ function createAxios() {
             PRODUCT,
             BLOG,
             create(data) {
-                return api.post("category", data, {
+                return api.post("admin/category", data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             getList(type, search, page = 1, length = 10) {
-                return api.get("category", {
+                return api.get("admin/category", {
                     params: {
                         type,
                         search,
@@ -31,76 +28,110 @@ function createAxios() {
                         length,
                     },
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             getItem(id) {
-                return api.get(`category/${id}`, {
+                return api.get(`admin/category/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             update(id, data) {
-                return api.put(`category/${id}`, data, {
+                return api.put(`admin/category/${id}`, data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             delete(id) {
-                return api.delete(`category/${id}`, {
+                return api.delete(`admin/category/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
         },
-        variation: {
-            create(data) {
-                return api.post("variation", data, {
+        attribute: {
+            getList(search, page = 1, length = 10) {
+                const params = {
+                    search,
+                    page,
+                    length,
+                };
+                return api.get("admin/attribute", {
+                    params,
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            getItem(id) {
+                return api.get(`admin/attribute/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            getByCategory(id) {
+                return api.get(`admin/attribute-category/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            create(data) {
+                return api.post("admin/attribute", data, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             update(data, id) {
-                return api.put(`variation/${id}`, data, {
+                return api.put(`admin/attribute/${id}`, data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             delete(id) {
-                return api.delete(`variation/${id}`, {
+                return api.delete(`admin/attribute/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+        },
+        attributeValue: {
+            create(data) {
+                return api.post("admin/attribute-value", data, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            update(id, data) {
+                return api.put(`admin/attribute-value/${id}`, data, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            delete(id) {
+                return api.delete(`admin/attribute-value/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
         },
         product: {
             create(data, headers) {
-                return api.post("product", data, {
+                return api.post("admin/product", data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                         ...headers,
                     },
                 });
@@ -111,60 +142,84 @@ function createAxios() {
                     start: (page - 1) * length,
                     length,
                 };
-                return api.get("product", {
+                return api.get("admin/product", {
                     params,
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             getProduct(id) {
-                return api.get(`product/${id}`, {
+                return api.get(`admin/product/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             update(id, data, headers) {
-                return api.post(`product/${id}`, data, {
+                return api.post(`admin/product/${id}`, data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                         ...headers,
                     },
                 });
             },
             delete(id) {
-                return api.delete(`product/${id}`, {
+                return api.delete(`admin/product/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            changeStatus(id, status) {
+                return api.put(
+                    `admin/product/${id}`,
+                    { status },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${getCookie("token")}`,
+                        },
+                    }
+                );
+            },
+        },
+        variation: {
+            create(data) {
+                return api.post("admin/variation", data, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+            delete(id) {
+                return api.delete(`admin/variation/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
         },
         variationOption: {
             create(data) {
-                return api.post("variation-option", data, {
+                return api.post("admin/variation-option", data, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             delete(id) {
-                return api.delete(`variation-option/${id}`, {
+                return api.delete(`admin/variation-option/${id}`, {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
+                    },
+                });
+            },
+        },
+        productItem: {
+            delete(id) {
+                return api.delete(`admin/product-item/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
@@ -176,18 +231,14 @@ function createAxios() {
             logout() {
                 return api.get("logout", {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },
             authorize() {
                 return api.get("authorize", {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
+                        Authorization: `Bearer ${getCookie("token")}`,
                     },
                 });
             },

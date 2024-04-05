@@ -35,7 +35,7 @@
                         >
                         <Button
                             v-if="props.customButton"
-                            class="text-white px-3 py-2"
+                            class="text-white px-3 py-2 ml-2"
                             :class="props.customButton?.class"
                             @click="$emit('customClick')"
                             >{{ props.customButton?.text }}</Button

@@ -22,4 +22,9 @@ class ProductConfigurationRepo implements IProductConfigurationRepo
             ->where('variation_option_id', $variation_option_id)
             ->update($data);
     }
+
+    public function where(string $field, string $value, string $op = '=')
+    {
+        return $this->model::where($field,$op,$value);
+    }
 }

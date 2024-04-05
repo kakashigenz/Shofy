@@ -4,19 +4,21 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Repositories\ICategoryRepository;
-use App\Repositories\IVariationRepository;
+use App\Repositories\IAttributeRepository;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
     protected $repository;
-    protected $variation_repo;
+    protected $attribute_repo;
 
-    public function __construct(ICategoryRepository $repository, IVariationRepository $variation_repo)
+    public function __construct(ICategoryRepository $repository, IAttributeRepository $attribute_repo)
+    //đặt tên là varriation nhưng là attribute
     {
         $this->repository = $repository;
-        $this->variation_repo = $variation_repo;
+        $this->attribute_repo = $attribute_repo;
     }
     /**
      * Display a listing of the resource.
@@ -45,20 +47,20 @@ class CategoryController extends Controller
         try {
             $data = $request->validate([
                 'name' => 'required',
-                'slug' => 'required',
                 'parent_category_id' => 'nullable',
                 'type' => 'numeric',
-                'variation' => 'array'
             ]);
+
+            $data['slug'] = $this->getSlug($data['name']);
 
             DB::beginTransaction();
             $category = $this->repository->create($data);
-            foreach ($data['variation'] as $value) {
-                $this->variation_repo->create([
-                    'category_id' => data_get($category, 'id'),
-                    'name' => $value
-                ]);
-            }
+            // foreach ($data['variation'] as $value) {
+            //     $this->attribute_repo->create([
+            //         'category_id' => data_get($category, 'id'),
+            //         'name' => $value
+            //     ]);
+            // }
 
             DB::commit();
             return response()->json(['message' => 'success']);
@@ -85,10 +87,10 @@ class CategoryController extends Controller
         try {
             $data = $request->validate([
                 'name' => 'required',
-                'slug' => 'required|unique:categories,slug,' . $id,
                 'parent_category_id' => 'nullable'
             ]);
 
+            $data['slug'] = $this->getSlug($data['name']);
             $this->repository->update($data, $id);
 
             return response()->json(['message' => 'success']);
@@ -103,10 +105,27 @@ class CategoryController extends Controller
     public function destroy(string $id)
     {
         try {
-            $this->repository->destroy($id);
+            $category = $this->repository->find($id);
+            DB::beginTransaction();
+            $attributes = $category->attributes;
+            foreach ($attributes as $attribute) {
+                $attribute->values()->delete();
+                $attribute->delete();
+            }
+            $category->delete();
+            DB::commit();
             return response()->json(['message' => 'success']);
         } catch (\Throwable $th) {
             return response()->json(['code' => $th->getCode(), 'message' => $th->getMessage()], 400);
         }
+    }
+
+    private function getSlug($product_name){
+        $slug = Str::slug($product_name);
+        $count_slug = $this->repository->where('slug',$slug)->withTrashed()->count();
+        if ($count_slug > 0){
+            $slug .= Str::random(7);
+        }
+        return $slug;
     }
 }

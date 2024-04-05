@@ -24,4 +24,9 @@ class VariationRepository implements IVariationRepository
     {
         return $this->model::find($id)->delete();
     }
+
+    public function where(string $field, string $value, string $op = '=')
+    {
+        return $this->model::with('option')->where($field,$op,$value);
+    }
 }

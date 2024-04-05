@@ -28,17 +28,38 @@
 </template>
 
 <script setup>
+import createAxios from "@/api/axios";
 import Dropdown from "./Dropdown.vue";
+import { useRouter } from "vue-router";
+import { toast } from "vue3-toastify";
+import "vue3-toastify/dist/index.css";
+import { useUserStore } from "@/store/useUserStore";
+
+const api = createAxios();
+const router = useRouter();
+const userStore = useUserStore();
 
 const dataDropdown = [
     {
-        title: "This is 1",
+        title: "Đổi mật khẩu",
     },
     {
-        title: "This is 2",
-    },
-    {
-        title: "This is 3",
+        title: "Đăng xuất",
+        handleClick: logout,
     },
 ];
+
+async function logout() {
+    try {
+        const response = await api.auth.logout();
+        if (response.status == 200) {
+            localStorage.removeItem("token");
+            userStore.setUser(null);
+            router.push({ name: "admin" });
+        }
+    } catch (error) {
+        toast.error("Có lỗi xảy ra vui lòng thử lại sau");
+        console.log(error);
+    }
+}
 </script>

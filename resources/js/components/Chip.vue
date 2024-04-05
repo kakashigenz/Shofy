@@ -62,14 +62,14 @@ function handlePress(e) {
             toast.error("Giá trị đã tồn tại");
             return;
         }
-        if (props.limit && data.value.length > props.limit) {
+        if (props.limit && data.value.length >= props.limit) {
             toast.error(`Chỉ có thể thêm ${props.limit} giá trị`);
             return;
         }
         if (text.value.trim()) {
             data.value.push(text.value.trim());
             text.value = "";
-            emit("changeValue");
+            emit("changeValue", data.value);
         }
     }
 }

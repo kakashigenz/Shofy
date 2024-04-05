@@ -18,4 +18,8 @@ class ProductItem extends Model
     {
         return $this->belongsToMany(VariationOption::class, 'product_configurations', 'product_item_id', 'variation_option_id');
     }
+
+    public function product(){
+        return $this->belongsTo(Product::class,'product_id','id');
+    }
 }

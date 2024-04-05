@@ -10,4 +10,5 @@ interface IProductRepository
     function show($id);
     function update($id, $data);
     function destroy($id);
+    function where(string $field,string $value,string $op = '=');
 }

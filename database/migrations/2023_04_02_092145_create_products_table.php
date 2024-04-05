@@ -18,7 +18,12 @@ return new class extends Migration
             $table->string('thumb', 255)->nullable();
             $table->text('description')->nullable();
             $table->string('slug', 255)->unique();
-            $table->boolean('show');
+            $table->tinyInteger('status');
+            $table->integer('weight');
+            $table->integer('height')->default(0);
+            $table->integer('length')->default(0);
+            $table->integer('width')->default(0);
+            $table->string('note');
             $table->timestamps();
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('restrict');
             $table->softDeletes();

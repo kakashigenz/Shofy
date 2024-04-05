@@ -15,7 +15,7 @@ class ProductRepository implements IproductRepository
 
     public function all($search)
     {
-        return $this->model::join('product_items', 'products.id', '=', 'product_items.product_id')
+        return $this->model::with('productItem')
             ->where('products.name', 'like', "%$search%")->get();
     }
 
@@ -33,7 +33,7 @@ class ProductRepository implements IproductRepository
 
     public function show($id)
     {
-        return $this->model::query()->find($id)->with('productItem.variationOption')->first();
+        return $this->model::query()->with(['productItem.variationOption','productImage','attributeValues'])->find($id);
     }
 
     public function update($id, $data)
@@ -43,5 +43,9 @@ class ProductRepository implements IproductRepository
 
     public function destroy($id){
         return $this->model::with('productItem')->delete();
+    }
+
+    public function where(string $field,string $value,string $op = '='){
+        return $this->model::where($field,$op,$value);
     }
 }

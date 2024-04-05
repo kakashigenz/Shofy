@@ -31,23 +31,31 @@ const list = [
         title: "Danh mục",
         icon: "category",
         active: false,
-        children: [
-            {
-                name: "product-category",
-                title: "Sản phẩm",
-                active: false,
-                icon: ["radio-circle", "radio-circle-marked"],
-                routeName: "category",
-                parent: "category",
-            },
-            {
-                name: "blog-category",
-                title: "Bài viết",
-                active: false,
-                icon: ["radio-circle", "radio-circle-marked"],
-                parent: "category",
-            },
-        ],
+        routeName: "category",
+        // children: [
+        //     {
+        //         name: "product-category",
+        //         title: "Sản phẩm",
+        //         active: false,
+        //         icon: ["radio-circle", "radio-circle-marked"],
+        //         routeName: "category",
+        //         parent: "category",
+        //     },
+        //     {
+        //         name: "blog-category",
+        //         title: "Bài viết",
+        //         active: false,
+        //         icon: ["radio-circle", "radio-circle-marked"],
+        //         parent: "category",
+        //     },
+        // ],
+    },
+    {
+        name: "attribute",
+        title: "Thuộc tính",
+        icon: "sitemap",
+        active: false,
+        routeName: "attribute",
     },
     {
         name: "user",

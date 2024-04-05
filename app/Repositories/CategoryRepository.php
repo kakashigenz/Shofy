@@ -15,16 +15,15 @@ class CategoryRepository implements ICategoryRepository
 
     public function all($type, $search)
     {
-        return $this->model::with('variation')->where('type', $type)
+        return $this->model::with('parentCategory', 'attributes')->where('type', $type)
             ->where('name', 'like', "%$search%")
             ->orWhere('slug', 'like', "%$search%")
-            ->with('parentCategory', 'variation')
             ->get(['id', 'name', 'slug', 'parent_category_id', 'created_at']);
     }
 
     public function find($id)
     {
-        return $this->model::with('parentCategory', 'variation')->find($id);
+        return $this->model::with('parentCategory', 'attributes')->find($id);
     }
 
     public function create($data)
@@ -49,7 +48,12 @@ class CategoryRepository implements ICategoryRepository
             ->orWhere('slug', 'like', "%$search%")
             ->skip($start)
             ->take($length)
-            ->with('parentCategory', 'variation.option')
+            ->with('parentCategory', 'attributes')//variation.option
             ->get(['id', 'name', 'slug', 'parent_category_id', 'created_at']);
+    }
+
+    public function where(string $field, string $value, string $op = '=')
+    {
+        return $this->model::where($field,$op,$value);
     }
 }

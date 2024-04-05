@@ -63,12 +63,12 @@ import createAxios from "@/api/axios";
 import { useUserStore } from "@/store/useUserStore";
 import { toast } from "vue3-toastify";
 import "vue3-toastify/dist/index.css";
+import { setCookie } from "@/helper/cookie";
 
 const api = createAxios();
 const store = useUserStore();
 const route = useRoute();
 const router = useRouter();
-document.title = route.meta.title;
 
 const isHidePassword = ref(true);
 const passwordInput = ref();
@@ -90,7 +90,7 @@ const onSubmit = handleSubmit((value) => {
         .login(value)
         .then((res) => {
             if (res.data.message == "success" && res.data.token) {
-                localStorage.setItem("token", res.data.token);
+                setCookie("token", res.data.token, 7);
                 store.setUser(res.data.user);
                 router.push({ name: "dashboard" });
             }
